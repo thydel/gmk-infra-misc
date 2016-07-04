@@ -1,0 +1,15 @@
+---
+
+- hosts: all
+  become: True
+  vars:
+    tar: /tmp/duplicity.tar
+  tasks:
+    - command: tar cvf {{ tar }} duplicity
+      args:
+        chdir: /etc
+        creates: '{{ tar }}'
+    - fetch:
+        src: '{{ tar }}'
+        dest: duplicity
+
