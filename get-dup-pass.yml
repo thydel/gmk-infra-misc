@@ -1,15 +1,26 @@
 ---
 
-- hosts: all
+- hosts: oxa
   become: True
   vars:
     tar: /tmp/duplicity.tar
   tasks:
-    - command: tar cvf {{ tar }} duplicity
-      args:
-        chdir: /etc
-        creates: '{{ tar }}'
-    - fetch:
-        src: '{{ tar }}'
-        dest: duplicity
-
+    - stat:
+        path: /etc/duplicity
+      register: duplicity
+    - block:
+        - command: tar cvf {{ tar }} duplicity
+          args:
+            chdir: /etc
+            creates: '{{ tar }}'
+        - fetch:
+            src: '{{ tar }}'
+            dest: duplicity
+        - unarchive:
+            copy: False
+            src: '{{ playbook_dir}}/duplicity/{{ inventory_hostname }}{{ tar }}'
+            dest: '{{ playbook_dir}}/duplicity/{{ inventory_hostname }}/tmp'
+          delegate_to: localhost
+          connection: local
+          become: False
+      when: duplicity.stat.isdir is defined and duplicity.stat.isdir
