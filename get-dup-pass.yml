@@ -16,6 +16,9 @@
         - fetch:
             src: '{{ tar }}'
             dest: duplicity
+        - file:
+            path: '{{ tar }}'
+            state: absent
         - unarchive:
             copy: False
             src: '{{ playbook_dir}}/duplicity/{{ inventory_hostname }}{{ tar }}'
@@ -23,4 +26,17 @@
           delegate_to: localhost
           connection: local
           become: False
+        - copy:
+            src: '{{ playbook_dir}}/duplicity/{{ inventory_hostname }}/tmp/duplicity/{{ inventory_hostname }}-duplicity'
+            dest: /space/duplicity/etc/{{ inventory_hostname }}-duplicity
+          delegate_to: restore1
+        - stat:
+            path: /etc/duplicity/{{ inventory_hostname }}
+          register: password
+        - copy:
+            src: '{{ playbook_dir}}/duplicity/{{ inventory_hostname }}/tmp/duplicity/{{ inventory_hostname }}'
+            dest: /space/duplicity/etc/{{ inventory_hostname }}
+            mode: 0600
+          delegate_to: restore1
+          when: password.stat.isreg is defined and password.stat.isreg
       when: duplicity.stat.isdir is defined and duplicity.stat.isdir
