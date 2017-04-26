@@ -1,13 +1,14 @@
+#!/usr/bin/env ansible-playbook
 ---
 
-- hosts: oxa
+- hosts: g_oxa
   become: True
   vars:
     tar: /tmp/duplicity.tar
   tasks:
     - stat:
         path: /etc/duplicity
-      register: duplicity
+      register: rem_duplicity
     - block:
         - command: tar cvf {{ tar }} duplicity
           args:
@@ -19,24 +20,44 @@
         - file:
             path: '{{ tar }}'
             state: absent
+        - set_fact:
+            duplicity: '{{ playbook_dir }}/duplicity/{{ inventory_hostname }}'
         - unarchive:
             copy: False
-            src: '{{ playbook_dir}}/duplicity/{{ inventory_hostname }}{{ tar }}'
-            dest: '{{ playbook_dir}}/duplicity/{{ inventory_hostname }}/tmp'
+            src: '{{ duplicity }}{{ tar }}'
+            dest: '{{ duplicity }}/tmp'
           delegate_to: localhost
           connection: local
           become: False
+        - set_fact:
+            tmp: '{{ duplicity }}/tmp/duplicity'
+        - stat:
+            path: '{{ tmp }}/{{ inventory_hostname }}-duplicity'
+          register: key
         - copy:
-            src: '{{ playbook_dir}}/duplicity/{{ inventory_hostname }}/tmp/duplicity/{{ inventory_hostname }}-duplicity'
+            src: '{{ tmp }}/{{ inventory_hostname }}-duplicity'
             dest: /space/duplicity/etc/{{ inventory_hostname }}-duplicity
           delegate_to: restore1
+          when: key.stat.isreg is defined and key.stat.isreg
         - stat:
             path: /etc/duplicity/{{ inventory_hostname }}
           register: password
         - copy:
-            src: '{{ playbook_dir}}/duplicity/{{ inventory_hostname }}/tmp/duplicity/{{ inventory_hostname }}'
+            src: '{{ tmp }}/{{ inventory_hostname }}'
             dest: /space/duplicity/etc/{{ inventory_hostname }}
             mode: 0600
           delegate_to: restore1
           when: password.stat.isreg is defined and password.stat.isreg
-      when: duplicity.stat.isdir is defined and duplicity.stat.isdir
+        - find:
+            path: '{{ tmp }}/'
+            pattern: 20??-??-??
+          delegate_to: localhost
+          register: password
+        - copy:
+            src: '{{ password.files[0].path }}'
+            dest: /space/duplicity/etc/{{ inventory_hostname }}
+            mode: 0600
+          delegate_to: restore1
+          when: password.matched == 1
+      when: rem_duplicity.stat.isdir is defined and rem_duplicity.stat.isdir
+
