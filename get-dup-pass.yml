@@ -2,62 +2,105 @@
 ---
 
 - hosts: g_oxa
-  become: True
   vars:
     tar: /tmp/duplicity.tar
+    restore: restore1
   tasks:
     - stat:
-        path: /etc/duplicity
+        path: /etc/duplicity/
+      become: True
       register: rem_duplicity
+      name: probe /etc/duplicity/
+      tags: always
     - block:
-        - command: tar cvf {{ tar }} duplicity
+        - command: tar chf {{ tar }} duplicity
           args:
+            warn: False
             chdir: /etc
             creates: '{{ tar }}'
+          become: True
+          name: make tar
         - fetch:
             src: '{{ tar }}'
             dest: duplicity
+          become: True
+          name: get tar
         - file:
             path: '{{ tar }}'
             state: absent
+          become: True
+          name: remove tar
         - set_fact:
             duplicity: '{{ playbook_dir }}/duplicity/{{ inventory_hostname }}'
+          tags: always
         - unarchive:
             copy: False
             src: '{{ duplicity }}{{ tar }}'
             dest: '{{ duplicity }}/tmp'
           delegate_to: localhost
-          connection: local
-          become: False
-        - set_fact:
-            tmp: '{{ duplicity }}/tmp/duplicity'
-        - stat:
-            path: '{{ tmp }}/{{ inventory_hostname }}-duplicity'
-          register: key
-        - copy:
-            src: '{{ tmp }}/{{ inventory_hostname }}-duplicity'
-            dest: /space/duplicity/etc/{{ inventory_hostname }}-duplicity
-          delegate_to: restore1
-          when: key.stat.isreg is defined and key.stat.isreg
-        - stat:
-            path: /etc/duplicity/{{ inventory_hostname }}
-          register: password
-        - copy:
-            src: '{{ tmp }}/{{ inventory_hostname }}'
-            dest: /space/duplicity/etc/{{ inventory_hostname }}
-            mode: 0600
-          delegate_to: restore1
-          when: password.stat.isreg is defined and password.stat.isreg
-        - find:
-            path: '{{ tmp }}/'
-            pattern: 20??-??-??
+          name: untar
+        - block:
+            - set_fact:
+                tmp: '{{ duplicity }}/tmp/duplicity'
+            - set_fact:
+                rsync:
+                  - rsync
+                  - -a
+                  - --chmod
+                  - u=r
+                restore_dir: root@{{ hostvars[restore].ansible_host }}:/etc/duplicity
+                gpg_key: '{{ tmp }}/duplicity@{{ inventory_hostname }}.priv'
+                ssh_key: '{{ tmp }}/{{ inventory_hostname }}-duplicity'
+                password_file: '{{ tmp }}/{{ inventory_hostname }}'
+            - stat:
+                path: '{{ gpg_key }}'
+              register: key
+              name: probe gpg key file
+            - command:
+                argv: '{{ rsync + args }}'
+              vars:
+                args:
+                  - '{{ gpg_key }}'
+                  - '{{ restore_dir}}'
+              when: key.stat.isreg is defined and key.stat.isreg
+              name: copy gpg key file
+            - stat:
+                path: '{{ ssh_key }}'
+              register: key
+              name: probe ssh key file
+            - command:
+                argv: '{{ rsync + args }}'
+              vars:
+                args:
+                  - '{{ ssh_key }}'
+                  - '{{ restore_dir}}'
+              when: key.stat.isreg is defined and key.stat.isreg
+              name: copy ssh key file
+            - stat:
+                path: '{{ password_file }}'
+              register: password
+              name: probe password file
+            - command:
+                argv: '{{ rsync + args }}'
+              vars:
+                args:
+                  - '{{ password_file }}'
+                  - '{{ restore_dir}}'
+              when: password.stat.isreg is defined and password.stat.isreg
+              name: copy password file
+            - find:
+                path: '{{ tmp }}/'
+                pattern: 20??-??-??
+              register: password
+              name: probe old password file
+            - command:
+                argv: '{{ rsync + args }}'
+              vars:
+                args:
+                  - '{{ password.files[0].path }}'
+                  - '{{ restore_dir}}/{{ inventory_hostname }}'
+              when: password.matched == 1
+              name: copy old password file
           delegate_to: localhost
-          register: password
-        - copy:
-            src: '{{ password.files[0].path }}'
-            dest: /space/duplicity/etc/{{ inventory_hostname }}
-            mode: 0600
-          delegate_to: restore1
-          when: password.matched == 1
+          tags: copy
       when: rem_duplicity.stat.isdir is defined and rem_duplicity.stat.isdir
-
