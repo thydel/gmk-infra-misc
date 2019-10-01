@@ -30,6 +30,7 @@
   configs:
     <<: *thy
     user.email: *thyepi
+    github.user: thyepi
 
 - { alias: thyepi, email: *thyepi, full: &tde Thierry Delamare }
 - { alias: thydel, email: *thydel, full: *tde }
