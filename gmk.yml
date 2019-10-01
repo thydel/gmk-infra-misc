@@ -72,3 +72,7 @@
   name: play-user
   version: gmk
   conf: thydel
+
+- git: git@github.com:thydel/gmk.git
+  name: gmk
+  conf: thydel
