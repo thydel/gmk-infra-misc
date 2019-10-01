@@ -23,6 +23,7 @@
   configs:
     <<: *thy
     user.email: *thydel
+    github.user: thydel
 
 - name: thyepi
   key: &thyepi t.delamare@epiconcept.fr
