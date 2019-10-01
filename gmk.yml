@@ -60,3 +60,8 @@
 - git: git@github.com:Epiconcept-Paris/infra-data-misc.git
   name: data-misc
   conf: thyepi
+
+- git: git@github.com:Epiconcept-Paris/infra-data-users.git
+  name: data-users
+  version: gmk
+  conf: thyepi
