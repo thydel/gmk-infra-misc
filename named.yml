@@ -6,7 +6,8 @@
   become: True
   gather_facts: False
 
-  vars_files: [ ext/ips/legacy/ips.js ]
+  vars: { loc_root: "{{ lookup('env', 'LOC_ROOT') or '/usr/local' }}" }
+  pre_tasks: [ include_vars: "{{ loc_root }}/etc/epi/data/oxa/legacy/ips.js" ]
   roles:
     - { role: hg-etc-com, com: before applying legacy-named role }
     - { role: legacy-named }
