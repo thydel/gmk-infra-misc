@@ -42,30 +42,33 @@
 
 - git: git@github.com:Epiconcept-Paris/infra-data-ips.git
   name: data-ips
-  version: tde
+  version: master
   conf: thyepi
 
 - git: git@github.com:thydel/infra-ips.git
   name: ips
+  version: master
   conf: thydel
   links: data-ips data-misc
 
 - git: git@github.com:Epiconcept-Paris/infra-data-inventories.git
   name: inventories
-  version: tde
+  version: master
   conf: thyepi
 
 - git: git@github.com:thydel/ansible-cfg.git
   name: ansible-cfg
+  version: master
   conf: thydel
 
 - git: git@github.com:Epiconcept-Paris/infra-data-misc.git
   name: data-misc
+  version: master
   conf: thyepi
 
 - git: git@github.com:Epiconcept-Paris/infra-data-users.git
   name: data-users
-  version: gmk
+  version: master
   conf: thyepi
 
 - git: git@thydel.github.com:thydel/infra-play-users.git
@@ -75,4 +78,10 @@
 
 - git: git@github.com:thydel/gmk.git
   name: gmk
+  version: master
   conf: thydel
+
+- git: git@github.com:Epiconcept-Paris/gmk-infra-out.git
+  name: out
+  conf: thyepi
+  version: master
